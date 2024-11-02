@@ -9,13 +9,13 @@ import (
 )
 
 type Model struct {
-	_renderer *strings.Builder
-	_camera   *engine.Camera
+	_renderer strings.Builder
+	_camera   engine.ICamera
 }
 
 func NewModel() *Model {
 	return &Model{
-		_renderer: &strings.Builder{},
+		_renderer: strings.Builder{},
 		_camera:   engine.NewCamera(0, 0, 75, 24),
 	}
 }
