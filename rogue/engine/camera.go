@@ -19,8 +19,8 @@ func NewCamera(x, y, w, h int) *Camera {
 }
 
 func (c *Camera) Move(dx, dy int) {
-	x, y := c.Rectangle.GetCenter()
-	c.Rectangle.SetCenter(x+dx, y+dy)
+	center := c.Rectangle.GetCenter()
+	c.Rectangle.SetCenter(center.GetX()+dx, center.GetY()+dy)
 }
 
 func (c *Camera) Goto(x, y int) {
@@ -32,5 +32,7 @@ func (c *Camera) Viewport() IRectangle {
 }
 
 func (r *Rectangle) String() string {
-	return fmt.Sprintf("Rectangle[Center: (%d, %d), Width: %d, Height: %d]", r.GetCenterX(), r.GetCenterY(), r.GetWidth(), r.GetHeight())
+	center := r.GetCenter()
+	size := r.GetSize()
+	return fmt.Sprintf("Rectangle{Center: %s, Size: %s}", center, size)
 }

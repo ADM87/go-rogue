@@ -1,5 +1,7 @@
 package engine
 
+import "fmt"
+
 type IPoint interface {
 	GetXY() (int, int)
 	GetX() int
@@ -47,4 +49,8 @@ func (p *Point) SetY(y int) {
 
 func (p *Point) Copy() IPoint {
 	return NewPoint(p._x, p._y)
+}
+
+func (p *Point) String() string {
+	return fmt.Sprintf("Point{%d, %d}", p._x, p._y)
 }

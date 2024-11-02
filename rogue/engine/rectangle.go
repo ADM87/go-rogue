@@ -9,10 +9,10 @@ type IRectangle interface {
 	GetCenterY() int
 	SetCenterY(int)
 
-	GetCenter() (int, int)
+	GetCenter() IPoint
 	SetCenter(int, int)
 
-	GetSize() (int, int)
+	GetSize() IPoint
 	SetSize(int, int)
 
 	GetWidth() int
@@ -76,8 +76,8 @@ func (r *Rectangle) GetCenterY() int {
 	return r._center.GetY()
 }
 
-func (r *Rectangle) GetCenter() (int, int) {
-	return r._center.GetXY()
+func (r *Rectangle) GetCenter() IPoint {
+	return r._center.Copy()
 }
 
 func (r *Rectangle) GetWidth() int {
@@ -88,8 +88,8 @@ func (r *Rectangle) GetHeight() int {
 	return r._size.GetY()
 }
 
-func (r *Rectangle) GetSize() (int, int) {
-	return r._size.GetXY()
+func (r *Rectangle) GetSize() IPoint {
+	return r._size.Copy()
 }
 
 func (r *Rectangle) SetCenterX(x int) {
