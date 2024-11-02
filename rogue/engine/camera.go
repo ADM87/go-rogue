@@ -1,5 +1,7 @@
 package engine
 
+import "fmt"
+
 type ICamera interface {
 	IPoint
 
@@ -48,6 +50,8 @@ func (c *Camera) DrawDebug() string {
 	vp := c.GetViewport()
 
 	output := ""
+	output += fmt.Sprintf("Camera: %v\n", c)
+	output += fmt.Sprintf("Viewport: %v\n", vp)
 	for y := vp.MinY(); y < vp.MaxY(); y++ {
 		for x := vp.MinX(); x < vp.MaxX(); x++ {
 			if x == 0 && y == 0 {

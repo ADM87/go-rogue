@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"rogue/engine"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -13,7 +12,7 @@ type Model struct {
 
 func NewModel() *Model {
 	return &Model{
-		_camera: engine.NewCamera(0, 0, 75, 20),
+		_camera: engine.NewCamera(0, 0, 60, 20),
 	}
 }
 
@@ -46,11 +45,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *Model) View() string {
-	vp := m._camera.GetViewport()
-
 	output := ""
-	output += fmt.Sprintf("Camera: %v\n", m._camera)
-	output += fmt.Sprintf("Viewport: %v\n", vp)
 	output += m._camera.DrawDebug()
 
 	return output

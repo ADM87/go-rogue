@@ -18,6 +18,11 @@ type IRectangle interface {
 	MaxX() int
 	MaxY() int
 	MaxXY() (int, int)
+
+	ContainsXY(int, int) bool
+	ContainsPoint(IPoint) bool
+
+	Intersects(IRectangle) bool
 }
 
 type Rectangle struct {
@@ -82,4 +87,16 @@ func (r *Rectangle) MaxY() int {
 
 func (r *Rectangle) MaxXY() (int, int) {
 	return r.GetX() + r.GetWidth(), r.GetY() + r.GetHeight()
+}
+
+func (r *Rectangle) ContainsXY(x, y int) bool {
+	return x >= r.MinX() && x <= r.MaxX() && y >= r.MinY() && y <= r.MaxY()
+}
+
+func (r *Rectangle) ContainsPoint(p IPoint) bool {
+	return r.ContainsXY(p.GetX(), p.GetY())
+}
+
+func (r *Rectangle) Intersects(rect IRectangle) bool {
+	return r.MinX() < rect.MaxX() && r.MaxX() > rect.MinX() && r.MinY() < rect.MaxY() && r.MaxY() > rect.MinY()
 }
