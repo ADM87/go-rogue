@@ -9,14 +9,16 @@ import (
 )
 
 type Model struct {
-	_renderer strings.Builder
-	_camera   engine.ICamera
+	renderer strings.Builder
+	world    engine.IQuadNode
+	camera   engine.ICamera
 }
 
 func NewModel() *Model {
 	return &Model{
-		_renderer: strings.Builder{},
-		_camera:   engine.NewCamera(0, 0, 75, 24),
+		renderer: strings.Builder{},
+		world:    engine.NewQuadTree(100, 100, 2, 4),
+		camera:   engine.NewCamera(0, 0, 75, 24),
 	}
 }
 
@@ -33,39 +35,45 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case "up":
-			m._camera.Move(0, -1)
+			m.camera.Move(0, -1)
 
 		case "down":
-			m._camera.Move(0, 1)
+			m.camera.Move(0, 1)
 
 		case "left":
-			m._camera.Move(-1, 0)
+			m.camera.Move(-1, 0)
 
 		case "right":
-			m._camera.Move(1, 0)
+			m.camera.Move(1, 0)
 		}
 	}
 	return m, nil
 }
 
 func (m *Model) View() string {
-	m._renderer.Reset()
+	m.renderer.Reset()
 
-	vp := m._camera.Viewport()
+	vp := m.camera.Viewport()
+	w := m.world
+
+	m.renderer.WriteString(fmt.Sprintf("# of nodes: %d\n", w.CountNodes()))
+
 	for y := vp.Top(); y < vp.Bottom(); y++ {
 		for x := vp.Left(); x < vp.Right(); x++ {
 			if x == 0 && y == 0 {
-				m._renderer.WriteString("@")
+				m.renderer.WriteString("@")
 			} else if x == vp.GetCenterX() && y == vp.GetCenterY() {
-				m._renderer.WriteString("+")
+				m.renderer.WriteString("+")
+			} else if x < w.Left() || x >= w.Right() || y < w.Top() || y >= w.Bottom() {
+				m.renderer.WriteString("█")
 			} else {
-				m._renderer.WriteString(".")
+				m.renderer.WriteString(" ")
 			}
 		}
-		m._renderer.WriteString("\n")
+		m.renderer.WriteString("\n")
 	}
 
-	m._renderer.WriteString(fmt.Sprintf("Camera: %s\n", m._camera))
+	m.renderer.WriteString(fmt.Sprintf("Camera: %s\n", m.camera))
 
-	return m._renderer.String()
+	return m.renderer.String()
 }
