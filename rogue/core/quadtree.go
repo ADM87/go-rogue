@@ -2,28 +2,25 @@ package core
 
 import "fmt"
 
-// IQuadObject is an interface representing an object in a quadtree.
-type IQuadObject interface {
-	IPoint // IPoint the position of the object.
-}
-
 // IQuadNode is an interface representing a node in a quadtree.
 type IQuadNode interface {
-	fmt.Stringer                          // String returns a string representation of the node.
-	IRectangle                            // IRectangle the bounds of the node.
-	Find(IQuadObject) bool                // Find processes a full search for the object in the tree.
-	Insert(IQuadObject) bool              // Insert inserts the object into the tree.
-	Remove(IQuadObject) bool              // Remove removes the object from the tree.
-	Query(IRectangle, bool) []IQuadObject // Query returns a list of objects in the region.
+	fmt.Stringer                     // String returns a string representation of the node.
+	IRectangle                       // IRectangle the bounds of the node.
+	Find(IPoint) bool                // Find processes a full search for the object in the tree.
+	Insert(IPoint) bool              // Insert inserts the object into the tree.
+	Remove(IPoint) bool              // Remove removes the object from the tree.
+	Query(IRectangle, bool) []IPoint // Query returns a list of objects in the region.
+	TotalNodes() int                 // TotalNodes returns the total number of nodes in the tree.
+	IsBorder(int, int) bool          // IsBorder returns true if the point is on the border of the node.
 }
 
 // QuadNode is a struct representing a node in a quadtree.
 type QuadNode struct {
-	*Rectangle                    // Rectangle the bounds of the node.
-	objects         []IQuadObject // objects in the node.
-	branches        []*QuadNode   // branches of the node.
-	parent          IQuadNode     // parent of the node.
-	depth, capacity int           // depth and capacity of the node.
+	*Rectangle                  // Rectangle the bounds of the node.
+	objects         []IPoint    // objects in the node.
+	branches        []*QuadNode // branches of the node.
+	parent          IQuadNode   // parent of the node.
+	depth, capacity int         // depth and capacity of the node.
 }
 
 // NewQuadBranch returns a new quadtree branch.
@@ -45,7 +42,7 @@ func (n *QuadNode) String() string {
 }
 
 // Find processes a full search for the object in the tree.
-func (n *QuadNode) Find(obj IQuadObject) bool {
+func (n *QuadNode) Find(obj IPoint) bool {
 	if !n.Contains(obj.GetX(), obj.GetY()) {
 		return false
 	}
@@ -62,7 +59,7 @@ func (n *QuadNode) Find(obj IQuadObject) bool {
 }
 
 // Insert inserts the object into the tree.
-func (n *QuadNode) Insert(obj IQuadObject) bool {
+func (n *QuadNode) Insert(obj IPoint) bool {
 	if n.Find(obj) {
 		return false
 	}
@@ -70,7 +67,7 @@ func (n *QuadNode) Insert(obj IQuadObject) bool {
 }
 
 // Remove removes the object from the tree.
-func (n *QuadNode) Remove(obj IQuadObject) bool {
+func (n *QuadNode) Remove(obj IPoint) bool {
 	if n.Find(obj) {
 		return false
 	}
@@ -78,13 +75,40 @@ func (n *QuadNode) Remove(obj IQuadObject) bool {
 }
 
 // Query returns a list of objects in the region.
-func (n *QuadNode) Query(rect IRectangle, cull bool) []IQuadObject {
-	return n.internalQuery(rect, cull, []IQuadObject{})
+func (n *QuadNode) Query(rect IRectangle, cull bool) []IPoint {
+	return n.internalQuery(rect, cull, []IPoint{})
+}
+
+// TotalNodes returns the total number of nodes in the tree.
+func (n *QuadNode) TotalNodes() int {
+	if len(n.branches) == 0 {
+		return 1
+	}
+	return 1 + n.branches[0].TotalNodes() + n.branches[1].TotalNodes() +
+		n.branches[2].TotalNodes() + n.branches[3].TotalNodes()
+}
+
+// IsBorder returns true if the point is on the border of the node.
+func (n *QuadNode) IsBorder(x, y int) bool {
+	minX, minY := n.Rectangle.Min()
+	maxX, maxY := n.Rectangle.Max()
+	if x == minX || x == maxX {
+		return y >= minY && y <= maxY
+	}
+
+	if y == minY || y == maxY {
+		return x >= minX && x <= maxX
+	}
+	if len(n.branches) == 4 {
+		return n.branches[0].IsBorder(x, y) || n.branches[1].IsBorder(x, y) ||
+			n.branches[2].IsBorder(x, y) || n.branches[3].IsBorder(x, y)
+	}
+	return false
 }
 
 // Private /////////////////////////////////////////////////////////////////////
 
-func (n *QuadNode) internalInsert(obj IQuadObject) bool {
+func (n *QuadNode) internalInsert(obj IPoint) bool {
 	if !n.Contains(obj.GetX(), obj.GetY()) {
 		return false
 	}
@@ -98,7 +122,7 @@ func (n *QuadNode) internalInsert(obj IQuadObject) bool {
 		n.branches[2].internalInsert(obj) || n.branches[3].internalInsert(obj)
 }
 
-func (n *QuadNode) internalQuery(region IRectangle, cull bool, objects []IQuadObject) []IQuadObject {
+func (n *QuadNode) internalQuery(region IRectangle, cull bool, objects []IPoint) []IPoint {
 	if !n.Overlaps(region) {
 		return objects
 	}
