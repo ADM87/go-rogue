@@ -14,6 +14,17 @@ func NewEntity(x, y int) *Entity {
 	return &Entity{NewPoint(x, y)}
 }
 
+func (e *Entity) Equals(other interface{}) bool {
+	if other == nil {
+		return false
+	}
+	otherEntity, ok := other.(*Entity)
+	if !ok {
+		return false
+	}
+	return e.x == otherEntity.x && e.y == otherEntity.y
+}
+
 // MoveBy moves the camera by the given x and y distances.
 func (e *Entity) MoveBy(x, y int) {
 	e.x += x

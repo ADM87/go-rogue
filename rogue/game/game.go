@@ -35,12 +35,18 @@ func (m *Model) Init() tea.Cmd {
 			key := fmt.Sprintf("%d,%d", x, y)
 			if _, ok := positions[key]; !ok {
 				positions[key] = true
-				m.quadTree.Insert(core.NewPoint(x, y))
+				m.quadTree.Insert(core.NewEntity(x, y))
 				break
 			}
 		}
 	}
 	m.quadTree.Insert(m.player)
+
+	fmt.Printf("Total Before: %d\n", m.quadTree.TotalObjects())
+
+	m.quadTree.Remove(m.player)
+
+	fmt.Printf("Total Before: %d\n", m.quadTree.TotalObjects())
 	return nil
 }
 
