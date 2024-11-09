@@ -41,12 +41,7 @@ func (m *Model) Init() tea.Cmd {
 		}
 	}
 	m.quadTree.Insert(m.player)
-
-	fmt.Printf("Total Before: %d\n", m.quadTree.TotalObjects())
-
 	m.quadTree.Remove(m.player)
-
-	fmt.Printf("Total Before: %d\n", m.quadTree.TotalObjects())
 	return nil
 }
 

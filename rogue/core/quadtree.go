@@ -146,10 +146,20 @@ func (n *QuadNode) internalRemove(obj IEntity) bool {
 	}
 	for _, branch := range n.branches {
 		if branch.internalRemove(obj) {
+			branch.tryMerge()
 			return true
 		}
 	}
 	return false
+}
+
+func (n *QuadNode) tryMerge() {
+	if len(n.branches) == 0 || n.TotalObjects() > n.capacity {
+		return
+	}
+	n.objects = append(n.objects, n.Query(n, false)...)
+	n.branches = nil
+	fmt.Println("Merged")
 }
 
 func (n *QuadNode) internalQuery(region IRectangle, cull bool, objects []IEntity) []IEntity {
