@@ -10,39 +10,45 @@ import (
 )
 
 type Model struct {
-	camera   core.ICamera
-	quadTree core.IQuadNode
-	player   core.IEntity
-	renderer strings.Builder
+	camera          core.ICamera
+	quadTree        core.IQuadNode
+	player          core.IEntity
+	playerCollision bool
+	renderer        strings.Builder
 }
 
 func NewModel() *Model {
-	return &Model{
-		camera:   core.NewCamera(0, 0, 75, 25),
-		quadTree: core.NewQuadTree(0, 0, 400, 200, 5, 4),
-		player:   core.NewEntity(0, 0),
-		renderer: strings.Builder{},
-	}
+	mdl := &Model{}
+	mdl.camera = core.NewCamera(0, 0, 75, 25)
+	mdl.quadTree = core.NewQuadTree(0, 0, 200, 100, 5, 4)
+	mdl.player = core.NewEntity(
+		mdl.quadTree.GetX()+mdl.quadTree.GetWidth()/2,
+		mdl.quadTree.GetY()+mdl.quadTree.GetHeight()/2,
+		mdl.moveEntity,
+	)
+	mdl.renderer = strings.Builder{}
+	return mdl
 }
 
 func (m *Model) Init() tea.Cmd {
+	m.quadTree.Insert(m.player)
+	m.camera.MoveTo(m.player.GetX(), m.player.GetY())
+	m.camera.ClampToBounds(m.quadTree)
+
 	positions := make(map[string]bool)
 	positions[fmt.Sprintf("%d,%d", m.player.GetX(), m.player.GetY())] = true
-	for i := 0; i < 600; i++ {
+	for i := 0; i < 1000; i++ {
 		for {
-			x := rand.Intn(m.quadTree.GetWidth())
-			y := rand.Intn(m.quadTree.GetHeight())
+			x := m.quadTree.GetX() + rand.Intn(m.quadTree.GetWidth())
+			y := m.quadTree.GetY() + rand.Intn(m.quadTree.GetHeight())
 			key := fmt.Sprintf("%d,%d", x, y)
 			if _, ok := positions[key]; !ok {
 				positions[key] = true
-				m.quadTree.Insert(core.NewEntity(x, y))
+				m.quadTree.Insert(core.NewEntity(x, y, m.moveEntity))
 				break
 			}
 		}
 	}
-	m.quadTree.Insert(m.player)
-	m.camera.MoveTo(m.player.GetX(), m.player.GetY())
-	m.camera.ClampToBounds(m.quadTree)
 	return nil
 }
 
@@ -55,31 +61,36 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case "up":
-			m.MovePlayer(0, -1)
+			m.player.MoveBy(0, -1)
 
 		case "down":
-			m.MovePlayer(0, 1)
+			m.player.MoveBy(0, 1)
 
 		case "left":
-			m.MovePlayer(-1, 0)
+			m.player.MoveBy(-1, 0)
 
 		case "right":
-			m.MovePlayer(1, 0)
+			m.player.MoveBy(1, 0)
 		}
 	}
 	return m, nil
 }
 
-func (m *Model) MovePlayer(dx, dy int) {
-	x, y := m.player.GetX()+dx, m.player.GetY()+dy
+func (m *Model) moveEntity(entity core.IEntity, x, y int) {
+	if entity == m.player {
+		m.playerCollision = false
+	}
 	if x < m.quadTree.Left() || x >= m.quadTree.Right() || y < m.quadTree.Top() || y >= m.quadTree.Bottom() {
 		return
 	}
 	collisionCheck := m.quadTree.Query(core.NewRectangle(x, y, 1, 1), true)
 	if len(collisionCheck) > 0 {
+		if entity == m.player {
+			m.playerCollision = true
+		}
 		return
 	}
-	m.quadTree.Move(m.player, x, y)
+	m.quadTree.Move(entity, x, y)
 }
 
 func (m *Model) View() string {
@@ -101,6 +112,7 @@ func (m *Model) View() string {
 	m.renderer.WriteString(fmt.Sprintf("Colliding: %t, Overlapping: %t, Containing: %t, OnBorder: %t\n", isColliding, isOverlapping, isContaining, isBorder))
 	m.renderer.WriteString(fmt.Sprintf("Visible Objects: %d, Total Nodes: %d, Total Objects: %d\n", len(objects), totalNodes, totalObjects))
 	m.renderer.WriteString(fmt.Sprintf("Player on border: %t\n", m.quadTree.IsBorder(m.player.GetX(), m.player.GetY())))
+	m.renderer.WriteString(fmt.Sprintf("Player collision: %t\n", m.playerCollision))
 
 	for y := viewport.Top(); y < viewport.Bottom(); y++ {
 		for x := viewport.Left(); x < viewport.Right(); x++ {
@@ -121,10 +133,10 @@ func (m *Model) View() string {
 					continue
 				}
 			}
-			if m.quadTree.IsBorder(x, y) {
-				m.renderer.WriteRune('▒')
-				continue
-			}
+			// if m.quadTree.IsBorder(x, y) {
+			// 	m.renderer.WriteRune('▒')
+			// 	continue
+			// }
 			if !m.quadTree.Contains(x, y) {
 				m.renderer.WriteRune('█')
 				continue

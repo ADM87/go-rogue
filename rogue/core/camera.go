@@ -7,25 +7,39 @@ import (
 // ICamera is an interface representing a viewable area of a map.
 type ICamera interface {
 	fmt.Stringer              // String returns a string representation of the camera.
-	IEntity                   // IEntity the position of the camera
+	IPoint                    // IEntity the position of the camera
+	MoveBy(int, int)          // MoveBy moves the camera by the given x and y distances.
+	MoveTo(int, int)          // MoveTo moves the camera to the given x and y coordinates.
 	ClampToBounds(IRectangle) // ClampToBounds clamps the camera to the bounds of the map.
 	Viewport() IRectangle     // Viewport returns the viewable area of the camera centered around the camera's position.
 }
 
 // Camera is a struct representing a viewable area of a map.
 type Camera struct {
-	*Entity        // Entity the position of the camera.
-	size    IPoint // size of the camera.
+	*Point        // Entity the position of the camera.
+	size   IPoint // size of the camera.
 }
 
 // NewCamera returns a new camera.
 func NewCamera(x, y, width, height int) *Camera {
-	return &Camera{NewEntity(x, y), NewPoint(width, height)}
+	return &Camera{NewPoint(x, y), NewPoint(width, height)}
 }
 
 // String returns a string representation of the camera.
 func (c *Camera) String() string {
-	return fmt.Sprintf("{Position: %s, size: %s, Viewport: %s}", c.Entity.String(), c.size.String(), c.Viewport().String())
+	return fmt.Sprintf("{Position: %s, size: %s, Viewport: %s}", c.Point.String(), c.size.String(), c.Viewport().String())
+}
+
+// MoveBy moves the camera by the given x and y distances.
+func (c *Camera) MoveBy(x, y int) {
+	c.x += x
+	c.y += y
+}
+
+// MoveTo moves the camera to the given x and y coordinates.
+func (c *Camera) MoveTo(x, y int) {
+	c.x = x
+	c.y = y
 }
 
 // ClampToBounds clamps the camera to the bounds of the map.
