@@ -6,7 +6,6 @@ import "fmt"
 type IPoint interface {
 	fmt.Stringer       // String returns a string representation of the point.
 	ICopy              // Copy returns a copy of the point.
-	IEquals            // Equals returns true if the point is equal to the other point.
 	GetX() int         // GetX returns the x coordinate of the point.
 	GetY() int         // GetY returns the y coordinate of the point.
 	GetXY() (int, int) // GetXY returns the x and y coordinates of the point.
@@ -33,18 +32,6 @@ func (p *Point) String() string {
 // Copy returns a copy of the point.
 func (p *Point) Copy() interface{} {
 	return &Point{p.x, p.y}
-}
-
-// Equals returns true if the point is equal to the other point.
-func (p *Point) Equals(other interface{}) bool {
-	if other == nil {
-		return false
-	}
-	otherPoint, ok := other.(*Point)
-	if !ok {
-		return false
-	}
-	return p.x == otherPoint.x && p.y == otherPoint.y
 }
 
 // GetX returns the x coordinate of the point.

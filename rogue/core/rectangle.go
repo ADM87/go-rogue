@@ -5,7 +5,6 @@ import "fmt"
 // IRectangle is an interface representing a rectangle in a map.
 type IRectangle interface {
 	ICopy                     // Copy returns a copy of the rectangle.
-	IEquals                   // Equals returns true if the rectangle is equal to the other rectangle.
 	IPoint                    // IPoint the position of the rectangle.
 	Left() int                // Left returns the left side of the rectangle.
 	Right() int               // Right returns the right side of the rectangle.
@@ -43,18 +42,6 @@ func (r *Rectangle) String() string {
 // Copy returns a copy of the rectangle.
 func (r *Rectangle) Copy() interface{} {
 	return &Rectangle{r.Point.Copy().(*Point), r.width, r.height}
-}
-
-// Equals returns true if the rectangle is equal to the other rectangle.
-func (r *Rectangle) Equals(other interface{}) bool {
-	if other == nil {
-		return false
-	}
-	otherRectangle, ok := other.(*Rectangle)
-	if !ok {
-		return false
-	}
-	return r.Point.Equals(otherRectangle.Point) && r.width == otherRectangle.width && r.height == otherRectangle.height
 }
 
 // Left returns the left side of the rectangle.

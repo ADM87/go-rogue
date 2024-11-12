@@ -1,6 +1,8 @@
 package core
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // ICamera is an interface representing a viewable area of a map.
 type ICamera interface {
@@ -28,21 +30,16 @@ func (c *Camera) String() string {
 
 // ClampToBounds clamps the camera to the bounds of the map.
 func (c *Camera) ClampToBounds(bounds IRectangle) {
-	x, y := c.GetXY()
-	width, height := c.size.GetXY()
-	bx, by := bounds.GetXY()
-	bw, bh := bounds.GetSize()
-	if x-width/2 < bx {
-		c.SetX(bx + width/2)
+	viewport := c.Viewport()
+	if viewport.Left() < bounds.Left() {
+		c.x += bounds.Left() - viewport.Left()
+	} else if viewport.Right() > bounds.Right() {
+		c.x -= viewport.Right() - bounds.Right()
 	}
-	if x+width/2 > bx+bw {
-		c.SetX(bx + bw - width/2)
-	}
-	if y-height/2 < by {
-		c.SetY(by + height/2)
-	}
-	if y+height/2 > by+bh {
-		c.SetY(by + bh - height/2)
+	if viewport.Top() < bounds.Top() {
+		c.y += bounds.Top() - viewport.Top()
+	} else if viewport.Bottom() > bounds.Bottom() {
+		c.y -= viewport.Bottom() - bounds.Bottom()
 	}
 }
 
