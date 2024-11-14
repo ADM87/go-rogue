@@ -4,8 +4,9 @@ type EntityMovementHandler func(IEntity, int, int)
 
 type IEntity interface {
 	IRectangle
-	MoveBy(int, int) // MoveBy moves the camera by the given x and y distances.
-	MoveTo(int, int) // MoveTo moves the camera to the given x and y coordinates.
+	MoveBy(int, int)     // MoveBy moves the camera by the given x and y distances.
+	MoveTo(int, int)     // MoveTo moves the camera to the given x and y coordinates.
+	OnCollision(IEntity) // OnCollision is called when the entity collides with another entity.
 }
 
 type Entity struct {
@@ -25,4 +26,8 @@ func (e *Entity) MoveBy(x, y int) {
 // MoveTo moves the camera to the given x and y coordinates.
 func (e *Entity) MoveTo(x, y int) {
 	e.moveHandler(e, x, y)
+}
+
+// OnCollision is called when the entity collides with another entity.
+func (e *Entity) OnCollision(other IEntity) {
 }

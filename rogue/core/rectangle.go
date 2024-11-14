@@ -10,6 +10,7 @@ type IRectangle interface {
 	Right() int               // Right returns the right side of the rectangle.
 	Top() int                 // Top returns the top side of the rectangle.
 	Bottom() int              // Bottom returns the bottom side of the rectangle.
+	Center() (int, int)       // Center returns the center of the rectangle.
 	Min() (int, int)          // Min returns the left and top sides of the rectangle.
 	Max() (int, int)          // Max returns the right and bottom sides of the rectangle.
 	GetWidth() int            // GetWidth returns the width of the rectangle.
@@ -62,6 +63,11 @@ func (r *Rectangle) Top() int {
 // Bottom returns the bottom side of the rectangle.
 func (r *Rectangle) Bottom() int {
 	return r.y + r.height
+}
+
+// Center returns the center of the rectangle.
+func (r *Rectangle) Center() (int, int) {
+	return r.x + r.width>>1, r.y + r.height>>1
 }
 
 // Min returns the left and top sides of the rectangle.

@@ -1,6 +1,9 @@
 package core
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+)
 
 // IQuadNode is an interface representing a node in a quadtree.
 type IQuadNode interface {
@@ -13,30 +16,45 @@ type IQuadNode interface {
 	Query(IRectangle, bool) []IEntity // Query returns a list of objects in the region.
 	TotalNodes() int                  // TotalNodes returns the total number of nodes in the tree.
 	TotalObjects() int                // TotalObjects returns the total number of objects in the tree.
-
-	TryToMerge()
-
-	// Debug
-	IsBorder(int, int) bool // IsBorder returns true if the entity is on the border of the node.
+	TryToMerge()                      // TryToMerge tries to merge the branches of the node.
+	IsBorder(int, int) bool           // IsBorder returns true if the entity is on the border of the node.
 }
 
 // QuadNode is a struct representing a node in a quadtree.
 type QuadNode struct {
-	*Rectangle                  // Rectangle the bounds of the node.
-	objects         []IEntity   // objects in the node.
-	branches        []*QuadNode // branches of the node.
-	parent          *QuadNode   // parent of the node.
-	depth, capacity int         // depth and capacity of the node.
+	*Rectangle             // Rectangle the bounds of the node.
+	objects    []IEntity   // objects in the node.
+	branches   []*QuadNode // branches of the node.
+	parent     *QuadNode   // parent of the node.
+	depth      int         // depth of the node.
+	capacity   int         // depth and capacity of the node.
+	minWidth   int         // minimum width of the node.
+	minHeight  int         // minimum height of the node.
 }
 
 // NewQuadBranch returns a new quadtree branch.
-func NewQuadBranch(parent *QuadNode, x, y, width, height, depth, capacity int) *QuadNode {
-	return &QuadNode{NewRectangle(x, y, width, height), nil, nil, parent, depth, capacity}
+func NewQuadBranch(parent *QuadNode, x, y, width, height, depth, capacity, minWidth, minHeight int) *QuadNode {
+	return &QuadNode{
+		Rectangle: NewRectangle(x, y, width, height),
+		parent:    parent,
+		depth:     depth,
+		capacity:  capacity,
+		minWidth:  minWidth,
+		minHeight: minHeight,
+	}
 }
 
 // NewQuadTree returns a new quadtree.
 func NewQuadTree(x, y, width, height, depth, capacity int) *QuadNode {
-	return NewQuadBranch(nil, x, y, width, height, depth, capacity)
+	minWidth := int(math.Log2(float64(width) / 4))
+	minHeight := int(math.Log2(float64(height) / 4))
+	return &QuadNode{
+		Rectangle: NewRectangle(x, y, width, height),
+		depth:     depth,
+		capacity:  capacity,
+		minWidth:  minWidth,
+		minHeight: minHeight,
+	}
 }
 
 // String returns a string representation of the node.
@@ -105,6 +123,8 @@ func (n *QuadNode) Remove(obj IEntity) bool {
 
 // Move moves the object in the tree.
 func (n *QuadNode) Move(obj IEntity, x, y int) bool {
+	// TODO: Optimize this method.
+	//		 - Check if the object is in the same node, if so, just move it don't remove and insert.
 	if !n.Remove(obj) {
 		return false
 	}
@@ -172,6 +192,7 @@ func (n *QuadNode) IsBorder(x, y int) bool {
 	return false
 }
 
+// TryToMerge tries to merge the branches of the node.
 func (n *QuadNode) TryToMerge() {
 	if len(n.branches) == 0 || n.TotalObjects() > n.capacity {
 		return
@@ -198,16 +219,16 @@ func (n *QuadNode) hasObject(obj IEntity) bool {
 
 func (n *QuadNode) subdivide() bool {
 	hw, hh := n.GetWidth()>>1, n.GetHeight()>>1
-	if hw < 4 || hh < 4 {
+	if hw < n.minWidth || hh < n.minHeight {
 		n.depth = 0
 		return false
 	}
 	ow, oh := n.GetWidth()&1, n.GetHeight()&1
 	n.branches = []*QuadNode{
-		NewQuadBranch(n, n.GetX(), n.GetY(), hw, hh, n.depth-1, n.capacity),
-		NewQuadBranch(n, n.GetX()+hw, n.GetY(), hw+ow, hh, n.depth-1, n.capacity),
-		NewQuadBranch(n, n.GetX(), n.GetY()+hh, hw, hh+oh, n.depth-1, n.capacity),
-		NewQuadBranch(n, n.GetX()+hw, n.GetY()+hh, hw+ow, hh+oh, n.depth-1, n.capacity),
+		NewQuadBranch(n, n.GetX(), n.GetY(), hw, hh, n.depth-1, n.capacity, n.minWidth, n.minHeight),
+		NewQuadBranch(n, n.GetX()+hw, n.GetY(), hw+ow, hh, n.depth-1, n.capacity, n.minWidth, n.minHeight),
+		NewQuadBranch(n, n.GetX(), n.GetY()+hh, hw, hh+oh, n.depth-1, n.capacity, n.minWidth, n.minHeight),
+		NewQuadBranch(n, n.GetX()+hw, n.GetY()+hh, hw+ow, hh+oh, n.depth-1, n.capacity, n.minWidth, n.minHeight),
 	}
 	n.distributeToBranches()
 	return true
