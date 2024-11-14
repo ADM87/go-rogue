@@ -7,7 +7,7 @@ import (
 // ICamera is an interface representing a viewable area of a map.
 type ICamera interface {
 	fmt.Stringer              // String returns a string representation of the camera.
-	IPoint                    // IEntity the position of the camera
+	IPoint                    // IPoint the position of the camera
 	MoveBy(int, int)          // MoveBy moves the camera by the given x and y distances.
 	MoveTo(int, int)          // MoveTo moves the camera to the given x and y coordinates.
 	ClampToBounds(IRectangle) // ClampToBounds clamps the camera to the bounds of the map.
@@ -16,7 +16,7 @@ type ICamera interface {
 
 // Camera is a struct representing a viewable area of a map.
 type Camera struct {
-	*Point        // Entity the position of the camera.
+	*Point        // IPoint the position of the camera.
 	size   IPoint // size of the camera.
 }
 

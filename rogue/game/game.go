@@ -36,7 +36,7 @@ func NewModel() *Model {
 
 func (m *Model) Init() tea.Cmd {
 	spawnX, spawnY := m.testMap.GetStart()
-	totalObjs := (m.quadTree.GetWidth() * m.quadTree.GetHeight() / 100) - 1 // Minus 1 for the player
+	totalObjs := (m.quadTree.GetWidth() * m.quadTree.GetHeight() / 10) - 1 // Minus 1 for the player
 
 	m.player.SetXY(spawnX, spawnY)
 	m.quadTree.Insert(m.player)
@@ -91,10 +91,17 @@ func (m *Model) moveEntity(entity core.IEntity, x, y int) {
 		for _, other := range others {
 			if other != entity && other.GetX() == x && other.GetY() == y {
 				entity.OnCollisionStart(other)
+				if entity == m.player {
+					dx, dy := x-entity.GetX(), y-entity.GetY()
+					other.MoveBy(dx, dy)
+					entity.OnCollisionEnd()
+				}
 				return
 			}
 		}
-		entity.OnCollisionEnd()
+		if entity.IsColliding() {
+			entity.OnCollisionEnd()
+		}
 	}
 	m.quadTree.Move(entity, x, y)
 }
@@ -144,10 +151,10 @@ func (m *Model) View() string {
 					continue
 				}
 			}
-			if m.quadTree.IsBorder(x, y) {
-				m.renderer.WriteRune('▒')
-				continue
-			}
+			// if m.quadTree.IsBorder(x, y) {
+			// 	m.renderer.WriteRune('▒')
+			// 	continue
+			// }
 			if !m.quadTree.Contains(x, y) {
 				m.renderer.WriteRune('█')
 				continue
