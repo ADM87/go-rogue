@@ -16,12 +16,14 @@ type Model struct {
 	player   core.IEntity
 	testMap  core.IMap
 	renderer strings.Builder
+
+	followPlayer bool
 }
 
 func NewModel() *Model {
 	mdl := &Model{}
-	mdl.camera = core.NewCamera(0, 0, 75, 25)
-	mdl.testMap = core.NewMap(data.NewMapConfig(20, 30, 10, 15, 5, 10))
+	mdl.camera = core.NewCamera(0, 0, 55, 20)
+	mdl.testMap = core.NewMap(data.NewMapConfig(16, 22, 7, 12, 30, 40))
 	mdl.quadTree = core.NewQuadTree(
 		mdl.testMap.GetX(),
 		mdl.testMap.GetY(),
@@ -30,13 +32,14 @@ func NewModel() *Model {
 		4, 4,
 	)
 	mdl.player = core.NewEntity(0, 0, mdl.moveEntity)
+	mdl.followPlayer = true
 	mdl.renderer = strings.Builder{}
 	return mdl
 }
 
 func (m *Model) Init() tea.Cmd {
 	spawnX, spawnY := m.testMap.GetStart()
-	totalObjs := (m.quadTree.GetWidth() * m.quadTree.GetHeight() / 10) - 1 // Minus 1 for the player
+	totalObjs := 0 //(m.quadTree.GetWidth() * m.quadTree.GetHeight() / 10) - 1 // Minus 1 for the player
 
 	m.player.SetXY(spawnX, spawnY)
 	m.quadTree.Insert(m.player)
@@ -67,17 +70,36 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "esc":
 			return m, tea.Quit
 
+		case "f":
+			m.followPlayer = !m.followPlayer
+
 		case "up":
-			m.player.MoveBy(0, -1)
+			if m.followPlayer {
+				m.player.MoveBy(0, -1)
+			} else {
+				m.camera.MoveBy(0, -1)
+			}
 
 		case "down":
-			m.player.MoveBy(0, 1)
+			if m.followPlayer {
+				m.player.MoveBy(0, 1)
+			} else {
+				m.camera.MoveBy(0, 1)
+			}
 
 		case "left":
-			m.player.MoveBy(-1, 0)
+			if m.followPlayer {
+				m.player.MoveBy(-1, 0)
+			} else {
+				m.camera.MoveBy(-1, 0)
+			}
 
 		case "right":
-			m.player.MoveBy(1, 0)
+			if m.followPlayer {
+				m.player.MoveBy(1, 0)
+			} else {
+				m.camera.MoveBy(1, 0)
+			}
 		}
 	}
 	return m, nil
@@ -87,26 +109,37 @@ func (m *Model) moveEntity(entity core.IEntity, x, y int) {
 	if x < m.quadTree.Left() || x >= m.quadTree.Right() || y < m.quadTree.Top() || y >= m.quadTree.Bottom() {
 		return
 	}
-	if others := m.quadTree.Query(core.NewRectangle(x, y, 1, 1), false); len(others) > 0 {
+	destination := core.NewRectangle(x, y, entity.GetWidth(), entity.GetHeight())
+	rooms := m.testMap.GetRooms(destination)
+	for _, room := range rooms {
+		if room.IsWall(x, y) {
+			return
+		}
+	}
+	if others := m.quadTree.Query(destination, false); len(others) > 0 {
 		for _, other := range others {
-			if other != entity && other.GetX() == x && other.GetY() == y {
-				entity.OnCollisionStart(other)
-				if entity == m.player {
-					dx, dy := x-entity.GetX(), y-entity.GetY()
-					other.MoveBy(dx, dy)
-					entity.OnCollisionEnd()
-				}
+			if other.GetX() == x && other.GetY() == y {
+				continue
+			}
+			if other.IsColliding() {
 				return
 			}
 		}
-		if entity.IsColliding() {
-			entity.OnCollisionEnd()
-		}
 	}
 	m.quadTree.Move(entity, x, y)
+
+	if entity == m.player {
+		rooms = m.testMap.GetRooms(m.player)
+		for _, room := range rooms {
+			room.Visit()
+		}
+	}
 }
 
 func (m *Model) updateCamera() {
+	if !m.followPlayer {
+		return
+	}
 	m.camera.MoveTo(m.player.GetX(), m.player.GetY())
 	// m.camera.ClampToBounds(m.quadTree)
 }
@@ -115,48 +148,35 @@ func (m *Model) View() string {
 	m.updateCamera()
 
 	viewport := m.camera.Viewport()
-	isColliding := m.quadTree.Collides(viewport)
-	isOverlapping := m.quadTree.Overlaps(viewport)
-	isContaining := m.quadTree.Contains(m.camera.GetX(), m.camera.GetY())
-	isBorder := m.quadTree.IsBorder(m.camera.GetX(), m.camera.GetY())
 	totalNodes := m.quadTree.TotalNodes()
 	totalObjects := m.quadTree.TotalObjects()
 	objects := m.quadTree.Query(viewport, true)
+	rooms := m.testMap.GetRooms(viewport)
+	startX, startY := m.testMap.GetStart()
+	endX, endY := m.testMap.GetEnd()
 
 	m.renderer.Reset()
 	m.renderer.WriteString(fmt.Sprintf("Camera: %s\n", m.camera.String()))
 	m.renderer.WriteString(fmt.Sprintf("QuadTree: %s\n", m.quadTree.String()))
-	m.renderer.WriteString(fmt.Sprintf("Colliding: %t, Overlapping: %t, Containing: %t, OnBorder: %t\n", isColliding, isOverlapping, isContaining, isBorder))
 	m.renderer.WriteString(fmt.Sprintf("Visible Objects: %d, Total Nodes: %d, Total Objects: %d\n", len(objects), totalNodes, totalObjects))
-	m.renderer.WriteString(fmt.Sprintf("Player on border: %t\n", m.quadTree.IsBorder(m.player.GetX(), m.player.GetY())))
 	m.renderer.WriteString(fmt.Sprintf("Player: %s\n", m.player.String()))
 	m.renderer.WriteString(fmt.Sprintf("Player Colliding: %t\n", m.player.IsColliding()))
+	m.renderer.WriteString(fmt.Sprintf("# of Visible Rooms: %d\n", len(rooms)))
+	m.renderer.WriteString(fmt.Sprintf("Following Player: %t\n", m.followPlayer))
+	m.renderer.WriteString(fmt.Sprintf("Start Point: (%d, %d)\n", startX, startY))
+	m.renderer.WriteString(fmt.Sprintf("End Point: (%d, %d)\n", endX, endY))
 
 	for y := viewport.Top(); y < viewport.Bottom(); y++ {
 		for x := viewport.Left(); x < viewport.Right(); x++ {
-			if len(objects) > 0 {
-				found := false
-				for _, o := range objects {
-					if o.GetX() == x && o.GetY() == y {
-						if o.GetX() == m.player.GetX() && o.GetY() == m.player.GetY() {
-							m.renderer.WriteRune('☺')
-						} else {
-							m.renderer.WriteRune('•')
-						}
-						found = true
-						break
-					}
-				}
-				if found {
-					continue
-				}
+			if m.drawEntities(objects, x, y) || m.drawRooms(rooms, x, y) {
+				continue
 			}
-			// if m.quadTree.IsBorder(x, y) {
-			// 	m.renderer.WriteRune('▒')
-			// 	continue
-			// }
-			if !m.quadTree.Contains(x, y) {
-				m.renderer.WriteRune('█')
+			if x == startX && y == startY {
+				m.renderer.WriteRune('S')
+				continue
+			}
+			if x == endX && y == endY {
+				m.renderer.WriteRune('E')
 				continue
 			}
 			m.renderer.WriteRune(' ')
@@ -164,4 +184,30 @@ func (m *Model) View() string {
 		m.renderer.WriteRune('\n')
 	}
 	return m.renderer.String()
+}
+
+func (m *Model) drawEntities(entities []core.IEntity, x, y int) bool {
+	for _, entity := range entities {
+		if entity.GetX() != x || entity.GetY() != y {
+			continue
+		}
+		if entity == m.player {
+			m.renderer.WriteRune('P')
+		} else {
+			m.renderer.WriteRune('O')
+		}
+		return true
+	}
+	return false
+}
+
+func (m *Model) drawRooms(rooms []core.IRoom, x, y int) bool {
+	for _, room := range rooms {
+		if !room.Contains(x, y) || !room.IsWall(x, y) {
+			continue
+		}
+		m.renderer.WriteRune('█')
+		return true
+	}
+	return false
 }
