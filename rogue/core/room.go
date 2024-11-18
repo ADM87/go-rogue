@@ -71,11 +71,11 @@ func (r *Room) checkConnection(direction, x, y int) bool {
 	switch direction {
 	case North, South:
 		w := int(math.Min(float64(r.GetWidth()), float64(neighbor.GetWidth()))) >> 1
-		return x >= (cx-w)+1 && x <= (cx+w)-1
+		return x >= (cx-w)+2 && x <= (cx+w)-2
 
 	case East, West:
 		h := int(math.Min(float64(r.GetHeight()), float64(neighbor.GetHeight()))) >> 1
-		return y >= (cy-h)+1 && y <= (cy+h)-1
+		return y >= (cy-h)+2 && y <= (cy+h)-2
 
 	default:
 		return false

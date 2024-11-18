@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"math/rand"
 	"rogue/data"
 )
@@ -78,47 +79,60 @@ func (m *Map) generateLayout(config data.IMapConfig) {
 	if minRooms == 0 || maxRooms == 0 {
 		panic("MapConfig must have MinRooms and MaxRooms set")
 	}
-	m.createRooms(config, nil, minRooms+rand.Intn(maxRooms-minRooms+1))
+	weights := []int{1, 1, 1, 1}
+	m.createRooms(config, nil, minRooms+rand.Intn(maxRooms-minRooms+1), weights)
+	fmt.Printf("End weights: %v\n", weights)
 }
 
-func (m *Map) createRooms(config data.IMapConfig, previousRoom IRoom, total int) {
+func (m *Map) createRooms(config data.IMapConfig, previousRoom IRoom, total int, weights []int) {
 	if len(m.rooms) == total {
 		return
 	}
 	width, height := m.newRoomSize(config)
 	if previousRoom == nil {
 		m.rooms = append(m.rooms, NewRoom(0, 0, width, height))
-		m.createRooms(config, m.rooms[0], total)
+		m.createRooms(config, m.rooms[0], total, weights)
 		return
 	}
-	directions := []int{North, East, South, West}
 	for {
-		if len(directions) == 0 || len(m.rooms) == total {
+		if len(m.rooms) == total {
 			return
 		}
-
-		i := rand.Intn(len(directions))
-		direction := directions[i]
-		directions = append(directions[:i], directions[i+1:]...)
-
-		if neighbor := previousRoom.GetNeighbor(direction); neighbor != nil {
-			m.createRooms(config, neighbor, total)
+		dir := m.chooseDirection(weights)
+		weights[dir]++
+		if neighbor := previousRoom.GetNeighbor(dir); neighbor != nil {
+			m.createRooms(config, neighbor, total, weights)
 			continue
 		}
-
-		x, y := m.newRoomPosition(previousRoom, direction, width, height)
-
+		x, y := m.newRoomPosition(previousRoom, dir, width, height)
 		room := NewRoom(x, y, width, height)
 		if m.overlapsOthers(room) {
 			continue
 		}
-
-		previousRoom.SetNeighbor(direction, room)
-		room.SetNeighbor((direction+2)%4, previousRoom)
-
+		previousRoom.SetNeighbor(dir, room)
+		room.SetNeighbor((dir+2)%4, previousRoom)
 		m.rooms = append(m.rooms, room)
-		m.createRooms(config, room, total)
+		m.createRooms(config, room, total, weights)
 	}
+}
+
+func (m *Map) chooseDirection(weights []int) int {
+	total := 0
+	cumulative := make([]int, len(weights))
+	for i, w := range weights {
+		total += w
+		cumulative[i] = total
+	}
+	if total == 0 {
+		return rand.Intn(4)
+	}
+	r := rand.Intn(total)
+	for i, c := range cumulative {
+		if r < c {
+			return i
+		}
+	}
+	return North
 }
 
 func (m *Map) newRoomSize(config data.IMapConfig) (int, int) {

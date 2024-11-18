@@ -23,7 +23,7 @@ type Model struct {
 func NewModel() *Model {
 	mdl := &Model{}
 	mdl.camera = core.NewCamera(0, 0, 55, 20)
-	mdl.testMap = core.NewMap(data.NewMapConfig(16, 22, 7, 12, 30, 40))
+	mdl.testMap = core.NewMap(data.NewMapConfig(20, 22, 7, 12, 30, 40))
 	mdl.quadTree = core.NewQuadTree(
 		mdl.testMap.GetX(),
 		mdl.testMap.GetY(),
@@ -151,7 +151,7 @@ func (m *Model) View() string {
 	totalNodes := m.quadTree.TotalNodes()
 	totalObjects := m.quadTree.TotalObjects()
 	objects := m.quadTree.Query(viewport, true)
-	rooms := m.testMap.GetRooms(viewport)
+	// rooms := m.testMap.GetRooms(viewport)
 	startX, startY := m.testMap.GetStart()
 	endX, endY := m.testMap.GetEnd()
 
@@ -160,15 +160,17 @@ func (m *Model) View() string {
 	m.renderer.WriteString(fmt.Sprintf("QuadTree: %s\n", m.quadTree.String()))
 	m.renderer.WriteString(fmt.Sprintf("Visible Objects: %d, Total Nodes: %d, Total Objects: %d\n", len(objects), totalNodes, totalObjects))
 	m.renderer.WriteString(fmt.Sprintf("Player: %s\n", m.player.String()))
-	m.renderer.WriteString(fmt.Sprintf("Player Colliding: %t\n", m.player.IsColliding()))
-	m.renderer.WriteString(fmt.Sprintf("# of Visible Rooms: %d\n", len(rooms)))
 	m.renderer.WriteString(fmt.Sprintf("Following Player: %t\n", m.followPlayer))
-	m.renderer.WriteString(fmt.Sprintf("Start Point: (%d, %d)\n", startX, startY))
-	m.renderer.WriteString(fmt.Sprintf("End Point: (%d, %d)\n", endX, endY))
+	m.renderer.WriteString(fmt.Sprintf("Start Point: (%d, %d), End Point: (%d, %d)\n", startX, startY, endX, endY))
 
 	for y := viewport.Top(); y < viewport.Bottom(); y++ {
 		for x := viewport.Left(); x < viewport.Right(); x++ {
-			if m.drawEntities(objects, x, y) || m.drawRooms(rooms, x, y) {
+			if char, ok := m.drawEntities(objects, x, y); ok {
+				m.renderer.WriteRune(char)
+				continue
+			}
+			if char, ok := m.drawRooms(m.testMap.GetRooms(viewport), x, y); ok {
+				m.renderer.WriteRune(char)
 				continue
 			}
 			if x == startX && y == startY {
@@ -186,28 +188,28 @@ func (m *Model) View() string {
 	return m.renderer.String()
 }
 
-func (m *Model) drawEntities(entities []core.IEntity, x, y int) bool {
+func (m *Model) drawEntities(entities []core.IEntity, x, y int) (rune, bool) {
 	for _, entity := range entities {
 		if entity.GetX() != x || entity.GetY() != y {
 			continue
 		}
 		if entity == m.player {
-			m.renderer.WriteRune('P')
+			return 'P', true
 		} else {
-			m.renderer.WriteRune('O')
+			return 'O', true
 		}
-		return true
 	}
-	return false
+	return ' ', false
 }
 
-func (m *Model) drawRooms(rooms []core.IRoom, x, y int) bool {
+func (m *Model) drawRooms(rooms []core.IRoom, x, y int) (rune, bool) {
 	for _, room := range rooms {
-		if !room.Contains(x, y) || !room.IsWall(x, y) {
-			continue
+		if room.Contains(x, y) {
+			if room.IsWall(x, y) {
+				return '█', true
+			}
+			return ' ', true
 		}
-		m.renderer.WriteRune('█')
-		return true
 	}
-	return false
+	return ' ', false
 }
