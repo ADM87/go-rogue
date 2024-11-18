@@ -1,7 +1,6 @@
 package core
 
 import (
-	"fmt"
 	"math/rand"
 	"rogue/data"
 )
@@ -79,29 +78,27 @@ func (m *Map) generateLayout(config data.IMapConfig) {
 	if minRooms == 0 || maxRooms == 0 {
 		panic("MapConfig must have MinRooms and MaxRooms set")
 	}
-	weights := []int{1, 1, 1, 1}
-	m.createRooms(config, nil, minRooms+rand.Intn(maxRooms-minRooms+1), weights)
-	fmt.Printf("End weights: %v\n", weights)
+	m.createRooms(config, nil, minRooms+rand.Intn(maxRooms-minRooms+1))
 }
 
-func (m *Map) createRooms(config data.IMapConfig, previousRoom IRoom, total int, weights []int) {
+func (m *Map) createRooms(config data.IMapConfig, previousRoom IRoom, total int) {
 	if len(m.rooms) == total {
 		return
 	}
 	width, height := m.newRoomSize(config)
 	if previousRoom == nil {
 		m.rooms = append(m.rooms, NewRoom(0, 0, width, height))
-		m.createRooms(config, m.rooms[0], total, weights)
+		m.createRooms(config, m.rooms[0], total)
 		return
 	}
+	directions := []int{North, East, South, West}
 	for {
 		if len(m.rooms) == total {
 			return
 		}
-		dir := m.chooseDirection(weights)
-		weights[dir]++
+		dir := directions[rand.Intn(len(directions))]
 		if neighbor := previousRoom.GetNeighbor(dir); neighbor != nil {
-			m.createRooms(config, neighbor, total, weights)
+			m.createRooms(config, neighbor, total)
 			continue
 		}
 		x, y := m.newRoomPosition(previousRoom, dir, width, height)
@@ -109,30 +106,18 @@ func (m *Map) createRooms(config data.IMapConfig, previousRoom IRoom, total int,
 		if m.overlapsOthers(room) {
 			continue
 		}
+		if other, collides := m.collidesWithOthers(room); collides {
+			if other.GetX() == room.GetX() || other.GetY() == room.GetY() {
+				d := m.GetDirection(room, other)
+				room.SetNeighbor(d, other)
+				other.SetNeighbor((d+2)%4, room)
+			}
+		}
 		previousRoom.SetNeighbor(dir, room)
 		room.SetNeighbor((dir+2)%4, previousRoom)
 		m.rooms = append(m.rooms, room)
-		m.createRooms(config, room, total, weights)
+		m.createRooms(config, room, total)
 	}
-}
-
-func (m *Map) chooseDirection(weights []int) int {
-	total := 0
-	cumulative := make([]int, len(weights))
-	for i, w := range weights {
-		total += w
-		cumulative[i] = total
-	}
-	if total == 0 {
-		return rand.Intn(4)
-	}
-	r := rand.Intn(total)
-	for i, c := range cumulative {
-		if r < c {
-			return i
-		}
-	}
-	return North
 }
 
 func (m *Map) newRoomSize(config data.IMapConfig) (int, int) {
@@ -181,4 +166,29 @@ func (m *Map) overlapsOthers(room IRoom) bool {
 		}
 	}
 	return false
+}
+
+func (m *Map) collidesWithOthers(room IRoom) (IRoom, bool) {
+	for _, other := range m.rooms {
+		if room.CollidesWith(other) {
+			return other, true
+		}
+	}
+	return nil, false
+}
+
+func (m *Map) GetDirection(r1, r2 IRoom) int {
+	if r1.GetX() == r2.GetX() {
+		if r1.GetY() > r2.GetY() {
+			return North
+		}
+		return South
+	}
+	if r1.GetY() == r2.GetY() {
+		if r1.GetX() > r2.GetX() {
+			return West
+		}
+		return East
+	}
+	panic("Rooms are not aligned")
 }
