@@ -4,11 +4,13 @@ type EntityMovementHandler func(IEntity, int, int)
 
 type IEntity interface {
 	IRectangle
-	MoveBy(int, int)          // MoveBy moves the camera by the given x and y distances.
-	MoveTo(int, int)          // MoveTo moves the camera to the given x and y coordinates.
-	OnCollisionStart(IEntity) // OnCollision is called when the entity collides with another entity.
-	OnCollisionEnd()          // OnCollision is called when the entity stops colliding with another entity.
-	IsColliding() bool        // IsColliding returns true if the entity is colliding with another entity.
+	MoveBy(int, int)                  // MoveBy moves the camera by the given x and y distances.
+	MoveTo(int, int)                  // MoveTo moves the camera to the given x and y coordinates.
+	OnCollisionStart(IEntity)         // OnCollision is called when the entity collides with another entity.
+	OnCollisionEnd()                  // OnCollision is called when the entity stops colliding with another entity.
+	IsColliding() bool                // IsColliding returns true if the entity is colliding with another entity.
+	GetComponent(string) interface{}  // GetComponent returns the component with the given name.
+	SetComponent(string, interface{}) // SetComponent sets the component with the given name.
 }
 
 type Entity struct {
@@ -44,4 +46,13 @@ func (e *Entity) OnCollisionEnd() {
 // IsColliding returns true if the entity is colliding with another entity.
 func (e *Entity) IsColliding() bool {
 	return e.isColliding
+}
+
+// GetComponent returns the component with the given name.
+func (e *Entity) GetComponent(name string) interface{} {
+	return nil
+}
+
+// SetComponent sets the component with the given name.
+func (e *Entity) SetComponent(name string, component interface{}) {
 }

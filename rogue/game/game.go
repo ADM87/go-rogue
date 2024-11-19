@@ -22,8 +22,8 @@ type Model struct {
 
 func NewModel() *Model {
 	mdl := &Model{}
-	mdl.camera = core.NewCamera(0, 0, 55, 20)
-	mdl.testMap = core.NewMap(data.NewMapConfig(20, 22, 7, 12, 30, 40))
+	mdl.camera = core.NewCamera(0, 0, 75, 25)
+	mdl.testMap = core.NewMap(data.NewMapConfig(13, 13, 7, 7, 50, 55))
 	mdl.quadTree = core.NewQuadTree(
 		mdl.testMap.GetX(),
 		mdl.testMap.GetY(),
@@ -151,7 +151,6 @@ func (m *Model) View() string {
 	totalNodes := m.quadTree.TotalNodes()
 	totalObjects := m.quadTree.TotalObjects()
 	objects := m.quadTree.Query(viewport, true)
-	// rooms := m.testMap.GetRooms(viewport)
 	startX, startY := m.testMap.GetStart()
 	endX, endY := m.testMap.GetEnd()
 
@@ -165,23 +164,17 @@ func (m *Model) View() string {
 
 	for y := viewport.Top(); y < viewport.Bottom(); y++ {
 		for x := viewport.Left(); x < viewport.Right(); x++ {
-			if char, ok := m.drawEntities(objects, x, y); ok {
+			var char rune
+			var ok bool
+			if char, ok = m.drawEntities(objects, x, y); ok {
 				m.renderer.WriteRune(char)
 				continue
 			}
-			if char, ok := m.drawRooms(m.testMap.GetRooms(viewport), x, y); ok {
+			if char, ok = m.drawRooms(m.testMap.GetRooms(viewport), x, y); ok {
 				m.renderer.WriteRune(char)
 				continue
 			}
-			if x == startX && y == startY {
-				m.renderer.WriteRune('S')
-				continue
-			}
-			if x == endX && y == endY {
-				m.renderer.WriteRune('E')
-				continue
-			}
-			m.renderer.WriteRune(' ')
+			m.renderer.WriteRune('█')
 		}
 		m.renderer.WriteRune('\n')
 	}
@@ -207,6 +200,14 @@ func (m *Model) drawRooms(rooms []core.IRoom, x, y int) (rune, bool) {
 		if room.Contains(x, y) {
 			if room.IsWall(x, y) {
 				return '█', true
+			}
+			sX, sY := m.testMap.GetStart()
+			if x == sX && y == sY {
+				return 'S', true
+			}
+			eX, eY := m.testMap.GetEnd()
+			if x == eX && y == eY {
+				return 'E', true
 			}
 			return ' ', true
 		}

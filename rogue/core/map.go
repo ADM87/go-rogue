@@ -91,7 +91,7 @@ func (m *Map) createRooms(config data.IMapConfig, previousRoom IRoom, total int)
 		m.createRooms(config, m.rooms[0], total)
 		return
 	}
-	directions := []int{North, East, South, West}
+	directions := []int{data.North, data.East, data.South, data.West}
 	for {
 		if len(m.rooms) == total {
 			return
@@ -106,11 +106,12 @@ func (m *Map) createRooms(config data.IMapConfig, previousRoom IRoom, total int)
 		if m.overlapsOthers(room) {
 			continue
 		}
-		if other, collides := m.collidesWithOthers(room); collides {
-			if other.GetX() == room.GetX() || other.GetY() == room.GetY() {
-				d := m.GetDirection(room, other)
-				room.SetNeighbor(d, other)
-				other.SetNeighbor((d+2)%4, room)
+		if others, collides := m.collidesWithOthers(room); collides {
+			for _, other := range others {
+				if other == previousRoom {
+					continue
+				}
+				m.tryConnectRooms(room, other)
 			}
 		}
 		previousRoom.SetNeighbor(dir, room)
@@ -143,16 +144,16 @@ func (m *Map) newRoomSize(config data.IMapConfig) (int, int) {
 func (m *Map) newRoomPosition(neighbor IRoom, direction, width, height int) (int, int) {
 	x, y := neighbor.Center()
 	switch direction {
-	case North:
+	case data.North:
 		x -= width >> 1
 		y = neighbor.Top() - height
-	case East:
+	case data.East:
 		x = neighbor.Right()
 		y -= height >> 1
-	case South:
+	case data.South:
 		x -= width >> 1
 		y = neighbor.Bottom()
-	case West:
+	case data.West:
 		x = neighbor.Left() - width
 		y -= height >> 1
 	}
@@ -168,27 +169,28 @@ func (m *Map) overlapsOthers(room IRoom) bool {
 	return false
 }
 
-func (m *Map) collidesWithOthers(room IRoom) (IRoom, bool) {
+func (m *Map) collidesWithOthers(room IRoom) ([]IRoom, bool) {
+	rooms := make([]IRoom, 0)
 	for _, other := range m.rooms {
 		if room.CollidesWith(other) {
-			return other, true
+			rooms = append(rooms, other)
 		}
 	}
-	return nil, false
+	return rooms, len(rooms) > 0
 }
 
-func (m *Map) GetDirection(r1, r2 IRoom) int {
-	if r1.GetX() == r2.GetX() {
-		if r1.GetY() > r2.GetY() {
-			return North
-		}
-		return South
+func (m *Map) tryConnectRooms(r1, r2 IRoom) {
+	if r2.GetX() != r1.GetX() && r2.GetY() != r1.GetY() {
+		return
 	}
-	if r1.GetY() == r2.GetY() {
-		if r1.GetX() > r2.GetX() {
-			return West
-		}
-		return East
+	roomDir := r1.GetNeighborDirection(r2)
+	otherDir := r2.GetNeighborDirection(r1)
+	if r1.GetNeighbor(otherDir) != nil || r2.GetNeighbor(roomDir) != nil {
+		return
 	}
-	panic("Rooms are not aligned")
+	if r1.CountNeighbors() >= 3 || r2.CountNeighbors() >= 3 {
+		return
+	}
+	r2.SetNeighbor(otherDir, r1)
+	r1.SetNeighbor(roomDir, r2)
 }

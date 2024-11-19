@@ -1,6 +1,9 @@
 package core
 
-import "math"
+import (
+	"math"
+	"rogue/data"
+)
 
 type IRoom interface {
 	IRectangle
@@ -9,6 +12,8 @@ type IRoom interface {
 	HasBeenVisited() bool
 	GetNeighbor(int) IRoom
 	SetNeighbor(int, IRoom)
+	CountNeighbors() int
+	GetNeighborDirection(IRoom) int
 }
 
 type Room struct {
@@ -54,10 +59,10 @@ func (r *Room) isDoor(x, y int) bool {
 	if !r.Contains(x, y) {
 		return false
 	}
-	return y == r.Top() && r.checkConnection(North, x, y) ||
-		x == r.Right()-1 && r.checkConnection(East, x, y) ||
-		y == r.Bottom()-1 && r.checkConnection(South, x, y) ||
-		x == r.Left() && r.checkConnection(West, x, y)
+	return y == r.Top() && r.checkConnection(data.North, x, y) ||
+		x == r.Right()-1 && r.checkConnection(data.East, x, y) ||
+		y == r.Bottom()-1 && r.checkConnection(data.South, x, y) ||
+		x == r.Left() && r.checkConnection(data.West, x, y)
 }
 
 func (r *Room) checkConnection(direction, x, y int) bool {
@@ -69,15 +74,40 @@ func (r *Room) checkConnection(direction, x, y int) bool {
 	cx, cy := r.Center()
 
 	switch direction {
-	case North, South:
+	case data.North, data.South:
 		w := int(math.Min(float64(r.GetWidth()), float64(neighbor.GetWidth()))) >> 1
 		return x >= (cx-w)+2 && x <= (cx+w)-2
 
-	case East, West:
+	case data.East, data.West:
 		h := int(math.Min(float64(r.GetHeight()), float64(neighbor.GetHeight()))) >> 1
 		return y >= (cy-h)+2 && y <= (cy+h)-2
 
 	default:
 		return false
 	}
+}
+
+func (r *Room) CountNeighbors() int {
+	count := 0
+	for _, neighbor := range r.neighbors {
+		if neighbor != nil {
+			count++
+		}
+	}
+	return count
+}
+
+func (r *Room) GetNeighborDirection(room IRoom) int {
+	cx1, cy1 := r.Center()
+	cx2, cy2 := room.Center()
+	if cx1 == cx2 {
+		if cy1 < cy2 {
+			return data.South
+		}
+		return data.North
+	}
+	if cx1 < cx2 {
+		return data.East
+	}
+	return data.West
 }
