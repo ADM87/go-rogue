@@ -23,7 +23,7 @@ type Model struct {
 func NewModel() *Model {
 	mdl := &Model{}
 	mdl.camera = core.NewCamera(0, 0, 75, 25)
-	mdl.testMap = core.NewMap(data.NewMapConfig(13, 13, 7, 7, 50, 55))
+	mdl.testMap = core.NewMap(data.NewMapConfig(9, 17, 7, 13, 50, 55))
 	mdl.quadTree = core.NewQuadTree(
 		mdl.testMap.GetX(),
 		mdl.testMap.GetY(),
@@ -174,7 +174,7 @@ func (m *Model) View() string {
 				m.renderer.WriteRune(char)
 				continue
 			}
-			m.renderer.WriteRune('█')
+			m.renderer.WriteRune(' ') //█')
 		}
 		m.renderer.WriteRune('\n')
 	}
