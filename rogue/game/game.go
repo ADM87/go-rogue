@@ -23,8 +23,8 @@ type Model struct {
 
 func NewModel() *Model {
 	mdl := &Model{}
-	mdl.camera = core.NewCamera(0, 0, 75, 25)
-	mdl.testMap = core.NewMap(data.NewMapConfig(13, 15, 7, 9, 10, 15))
+	mdl.camera = core.NewCamera(0, 0, 65, 23)
+	mdl.testMap = core.NewMap(data.NewMapConfig(14, 14, 7, 7, 20, 20))
 	mdl.quadTree = core.NewQuadTree(
 		mdl.testMap.GetX(),
 		mdl.testMap.GetY(),
@@ -172,21 +172,22 @@ func (m *Model) View() string {
 
 			mapResult := m.testMap.Render(x, y, m.player.GetX(), m.player.GetY(), m.renderLoS)
 			switch mapResult {
-			case data.Wall:
+			case data.Wall, data.OutOfBounds:
 				m.renderer.WriteRune('█')
 				continue
 			case data.NotVisible:
-				m.renderer.WriteRune('#')
-				continue
-			case data.OutOfBounds:
-				m.renderer.WriteRune('█')
+				m.renderer.WriteRune('▒')
 				continue
 			}
 
 			isEmpty := true
 			for _, entity := range objects {
 				if entity.GetX() == x && entity.GetY() == y {
-					m.renderer.WriteRune('O')
+					if entity == m.player {
+						m.renderer.WriteRune('🯅')
+					} else {
+						m.renderer.WriteRune('O')
+					}
 					isEmpty = false
 					break
 				}
@@ -194,9 +195,9 @@ func (m *Model) View() string {
 
 			if isEmpty {
 				if x == startX && y == startY {
-					m.renderer.WriteRune('S')
+					m.renderer.WriteRune('⛁')
 				} else if x == endX && y == endY {
-					m.renderer.WriteRune('E')
+					m.renderer.WriteRune('⛃')
 				} else {
 					m.renderer.WriteRune(' ')
 				}

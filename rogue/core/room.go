@@ -57,16 +57,16 @@ func (r *Room) Visit() {
 func (r *Room) GetNeighborDirection(room IRoom) int {
 	cx1, cy1 := r.Center()
 	cx2, cy2 := room.Center()
-	if cx1 == cx2 {
-		if cy1 < cy2 {
-			return data.South
-		}
+	switch {
+	case cx1 == cx2 && cy1 < cy2:
+		return data.South
+	case cx1 == cx2 && cy1 > cy2:
 		return data.North
-	}
-	if cx1 < cx2 {
+	case cx1 < cx2:
 		return data.East
+	default:
+		return data.West
 	}
-	return data.West
 }
 
 // Additional Room methods to handle doors and neighbors

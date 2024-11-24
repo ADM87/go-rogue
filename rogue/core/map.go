@@ -143,6 +143,7 @@ func (m *Map) createRooms(config data.IMapConfig, previousRoom IRoom, total int)
 					continue
 				}
 				m.tryConnectRooms(room, other)
+				break
 			}
 		}
 		previousRoom.SetNeighbor(dir, room)
@@ -210,20 +211,18 @@ func (m *Map) collidesWithOthers(room IRoom) ([]IRoom, bool) {
 	return rooms, len(rooms) > 0
 }
 
-func (m *Map) tryConnectRooms(r1, r2 IRoom) {
-	if r2.GetX() != r1.GetX() && r2.GetY() != r1.GetY() {
-		return
+func (m *Map) tryConnectRooms(r1, r2 IRoom) bool {
+	if r1.GetX() != r2.GetX() && r1.GetY() != r2.GetY() {
+		return false
 	}
-	roomDir := r1.GetNeighborDirection(r2)
-	otherDir := r2.GetNeighborDirection(r1)
-	if r1.GetNeighbor(otherDir) != nil || r2.GetNeighbor(roomDir) != nil {
-		return
+	dir := r1.GetNeighborDirection(r2)
+	opp := (dir + 2) % 4
+	if r1.GetNeighbor(dir) != nil && r2.GetNeighbor(opp) != nil {
+		return false
 	}
-	if r1.CountNeighbors() >= 3 || r2.CountNeighbors() >= 3 {
-		return
-	}
-	r2.SetNeighbor(otherDir, r1)
-	r1.SetNeighbor(roomDir, r2)
+	r1.SetNeighbor(dir, r2)
+	r2.SetNeighbor(opp, r1)
+	return true
 }
 
 func (m *Map) calculateDimensions() {

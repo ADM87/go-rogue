@@ -25,11 +25,17 @@ func NewEntity(x, y int, movementHandler EntityMovementHandler) *Entity {
 
 // MoveBy moves the camera by the given x and y distances.
 func (e *Entity) MoveBy(x, y int) {
+	if e.moveHandler == nil {
+		return
+	}
 	e.moveHandler(e, e.x+x, e.y+y)
 }
 
 // MoveTo moves the camera to the given x and y coordinates.
 func (e *Entity) MoveTo(x, y int) {
+	if e.moveHandler == nil {
+		return
+	}
 	e.moveHandler(e, x, y)
 }
 
