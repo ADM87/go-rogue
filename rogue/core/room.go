@@ -5,6 +5,7 @@ import (
 	"rogue/data"
 )
 
+// Room and IRoom definitions as provided
 type IRoom interface {
 	IRectangle
 	Visit()
@@ -53,8 +54,22 @@ func (r *Room) Visit() {
 	r.wasVisited = true
 }
 
-// Private /////////////////////////////////////////////////////////////////////
+func (r *Room) GetNeighborDirection(room IRoom) int {
+	cx1, cy1 := r.Center()
+	cx2, cy2 := room.Center()
+	if cx1 == cx2 {
+		if cy1 < cy2 {
+			return data.South
+		}
+		return data.North
+	}
+	if cx1 < cx2 {
+		return data.East
+	}
+	return data.West
+}
 
+// Additional Room methods to handle doors and neighbors
 func (r *Room) isDoor(x, y int) bool {
 	if !r.Contains(x, y) {
 		return false
@@ -95,19 +110,4 @@ func (r *Room) CountNeighbors() int {
 		}
 	}
 	return count
-}
-
-func (r *Room) GetNeighborDirection(room IRoom) int {
-	cx1, cy1 := r.Center()
-	cx2, cy2 := room.Center()
-	if cx1 == cx2 {
-		if cy1 < cy2 {
-			return data.South
-		}
-		return data.North
-	}
-	if cx1 < cx2 {
-		return data.East
-	}
-	return data.West
 }

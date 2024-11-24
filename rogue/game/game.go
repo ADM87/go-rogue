@@ -18,12 +18,13 @@ type Model struct {
 	renderer strings.Builder
 
 	followPlayer bool
+	renderLoS    bool
 }
 
 func NewModel() *Model {
 	mdl := &Model{}
 	mdl.camera = core.NewCamera(0, 0, 75, 25)
-	mdl.testMap = core.NewMap(data.NewMapConfig(9, 17, 7, 13, 50, 55))
+	mdl.testMap = core.NewMap(data.NewMapConfig(13, 15, 7, 9, 10, 15))
 	mdl.quadTree = core.NewQuadTree(
 		mdl.testMap.GetX(),
 		mdl.testMap.GetY(),
@@ -33,6 +34,7 @@ func NewModel() *Model {
 	)
 	mdl.player = core.NewEntity(0, 0, mdl.moveEntity)
 	mdl.followPlayer = true
+	mdl.renderLoS = true
 	mdl.renderer = strings.Builder{}
 	return mdl
 }
@@ -72,6 +74,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "f":
 			m.followPlayer = !m.followPlayer
+
+		case "l":
+			m.renderLoS = !m.renderLoS
 
 		case "up":
 			if m.followPlayer {
@@ -141,7 +146,6 @@ func (m *Model) updateCamera() {
 		return
 	}
 	m.camera.MoveTo(m.player.GetX(), m.player.GetY())
-	// m.camera.ClampToBounds(m.quadTree)
 }
 
 func (m *Model) View() string {
@@ -162,55 +166,43 @@ func (m *Model) View() string {
 	m.renderer.WriteString(fmt.Sprintf("Following Player: %t\n", m.followPlayer))
 	m.renderer.WriteString(fmt.Sprintf("Start Point: (%d, %d), End Point: (%d, %d)\n", startX, startY, endX, endY))
 
+	m.testMap.SetActiveRegion(viewport)
 	for y := viewport.Top(); y < viewport.Bottom(); y++ {
 		for x := viewport.Left(); x < viewport.Right(); x++ {
-			var char rune
-			var ok bool
-			if char, ok = m.drawEntities(objects, x, y); ok {
-				m.renderer.WriteRune(char)
+
+			mapResult := m.testMap.Render(x, y, m.player.GetX(), m.player.GetY(), m.renderLoS)
+			switch mapResult {
+			case data.Wall:
+				m.renderer.WriteRune('█')
+				continue
+			case data.NotVisible:
+				m.renderer.WriteRune('#')
+				continue
+			case data.OutOfBounds:
+				m.renderer.WriteRune('█')
 				continue
 			}
-			if char, ok = m.drawRooms(m.testMap.GetRooms(viewport), x, y); ok {
-				m.renderer.WriteRune(char)
-				continue
+
+			isEmpty := true
+			for _, entity := range objects {
+				if entity.GetX() == x && entity.GetY() == y {
+					m.renderer.WriteRune('O')
+					isEmpty = false
+					break
+				}
 			}
-			m.renderer.WriteRune(' ') //█')
+
+			if isEmpty {
+				if x == startX && y == startY {
+					m.renderer.WriteRune('S')
+				} else if x == endX && y == endY {
+					m.renderer.WriteRune('E')
+				} else {
+					m.renderer.WriteRune(' ')
+				}
+			}
 		}
 		m.renderer.WriteRune('\n')
 	}
 	return m.renderer.String()
-}
-
-func (m *Model) drawEntities(entities []core.IEntity, x, y int) (rune, bool) {
-	for _, entity := range entities {
-		if entity.GetX() != x || entity.GetY() != y {
-			continue
-		}
-		if entity == m.player {
-			return 'P', true
-		} else {
-			return 'O', true
-		}
-	}
-	return ' ', false
-}
-
-func (m *Model) drawRooms(rooms []core.IRoom, x, y int) (rune, bool) {
-	for _, room := range rooms {
-		if room.Contains(x, y) {
-			if room.IsWall(x, y) {
-				return '█', true
-			}
-			sX, sY := m.testMap.GetStart()
-			if x == sX && y == sY {
-				return 'S', true
-			}
-			eX, eY := m.testMap.GetEnd()
-			if x == eX && y == eY {
-				return 'E', true
-			}
-			return ' ', true
-		}
-	}
-	return ' ', false
 }

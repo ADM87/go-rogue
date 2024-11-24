@@ -9,21 +9,24 @@ type IMap interface {
 	IRectangle
 	GetStart() (int, int)
 	GetEnd() (int, int)
-	GetRooms(region IRectangle) []IRoom
+	GetRooms(IRectangle) []IRoom
+	SetActiveRegion(IRectangle)
+	Render(int, int, int, int, bool) int
 }
 
 type Map struct {
 	*Rectangle
-	start IPoint
-	end   IPoint
-	rooms []IRoom
+	start       IPoint
+	end         IPoint
+	rooms       []IRoom
+	activeRooms []IRoom
 }
 
 func NewMap(config data.IMapConfig) *Map {
 	m := &Map{}
 
 	m.generateLayout(config)
-	m.CalculateArea()
+	m.calculateDimensions()
 
 	sX, sY := m.rooms[0].Center()
 	m.start = NewPoint(sX, sY)
@@ -42,25 +45,6 @@ func (m *Map) GetEnd() (int, int) {
 	return m.end.GetX(), m.end.GetY()
 }
 
-func (m *Map) CalculateArea() {
-	left, top, right, bottom := 0, 0, 0, 0
-	for _, room := range m.rooms {
-		if room.Left() < left {
-			left = room.Left()
-		}
-		if room.Top() < top {
-			top = room.Top()
-		}
-		if room.Right() > right {
-			right = room.Right()
-		}
-		if room.Bottom() > bottom {
-			bottom = room.Bottom()
-		}
-	}
-	m.Rectangle = NewRectangle(left, top, right-left, bottom-top)
-}
-
 func (m *Map) GetRooms(region IRectangle) []IRoom {
 	rooms := make([]IRoom, 0)
 	for _, room := range m.rooms {
@@ -69,6 +53,53 @@ func (m *Map) GetRooms(region IRectangle) []IRoom {
 		}
 	}
 	return rooms
+}
+
+func (m *Map) SetActiveRegion(region IRectangle) {
+	m.activeRooms = m.activeRooms[:0]
+	for _, room := range m.rooms {
+		if room.Overlaps(region) {
+			m.activeRooms = append(m.activeRooms, room)
+		}
+	}
+}
+
+func (m *Map) Render(x, y, focalX, focalY int, los bool) int {
+	if !m.Contains(x, y) {
+		return data.OutOfBounds
+	}
+	visible := true
+	if los {
+		Raycast(x, y, focalX, focalY, 1, func(x, y int) bool {
+			for _, room := range m.activeRooms {
+				if !room.Contains(x, y) {
+					continue
+				}
+				if room.IsWall(x, y) {
+					visible = false
+					return true
+				}
+			}
+			visible = true
+			return false
+		})
+	}
+	result := data.OutOfBounds
+	for _, room := range m.activeRooms {
+		if room.Contains(x, y) {
+			if room.IsWall(x, y) {
+				result = data.Wall
+				break
+			}
+			if !visible {
+				result = data.NotVisible
+				break
+			}
+			result = data.Floor
+			break
+		}
+	}
+	return result
 }
 
 // Private //////////////////////////////////////////////////////////////////////
@@ -193,4 +224,23 @@ func (m *Map) tryConnectRooms(r1, r2 IRoom) {
 	}
 	r2.SetNeighbor(otherDir, r1)
 	r1.SetNeighbor(roomDir, r2)
+}
+
+func (m *Map) calculateDimensions() {
+	left, top, right, bottom := 0, 0, 0, 0
+	for _, room := range m.rooms {
+		if room.Left() < left {
+			left = room.Left()
+		}
+		if room.Top() < top {
+			top = room.Top()
+		}
+		if room.Right() > right {
+			right = room.Right()
+		}
+		if room.Bottom() > bottom {
+			bottom = room.Bottom()
+		}
+	}
+	m.Rectangle = NewRectangle(left, top, right-left, bottom-top)
 }
